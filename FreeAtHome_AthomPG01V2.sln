@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.34031.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FreeAtHome_AthomPG01V2", "FreeAtHome_AthomPG01V2.vcxproj", "{AC247C39-2685-47FC-8084-639138CED532}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
+		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM.ActiveCfg = Debug|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM.Build.0 = Debug|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM.Deploy.0 = Debug|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM64.Build.0 = Debug|ARM64
+		{AC247C39-2685-47FC-8084-639138CED532}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM.ActiveCfg = Release|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM.Build.0 = Release|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM.Deploy.0 = Release|ARM
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM64.ActiveCfg = Release|ARM64
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM64.Build.0 = Release|ARM64
+		{AC247C39-2685-47FC-8084-639138CED532}.Release|ARM64.Deploy.0 = Release|ARM64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A904D4AD-9B56-4487-96E6-1CA1644D3694}
+	EndGlobalSection
+EndGlobal

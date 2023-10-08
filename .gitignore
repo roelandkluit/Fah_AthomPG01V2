@@ -50,3 +50,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+/__vm
+/.vs/FreeAtHome_AthomPG01V2/v16
+/.vs/ProjectSettings.json
+/.vs
+/FreeAtHome_AthomPG01V2.vcxproj.filters
