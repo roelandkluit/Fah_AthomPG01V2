@@ -5,13 +5,14 @@
 
 #include <EEPROM.h>
 
-#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+#include "WiFiManager.h" // https://github.com/tzapu/WiFiManager
 
 struct ParamEntry
 {
     const char* id;
     const char* label;
     int max_len;
+    const char* customHtml;
 };
 
 class WifiManagerParamHelper
@@ -50,14 +51,14 @@ public:
             if (eeprom_length >= current_size + entries[i].max_len)
             {
                 const char* loaded_data = reinterpret_cast<const char*>(EEPROM.getConstDataPtr() + current_size);
-                parameters_.emplace_back(entries[i].id, entries[i].label, loaded_data, entries[i].max_len);
-                Serial.println(String("Loading: ") + entries[i].id + ": " + loaded_data);
+                parameters_.emplace_back(entries[i].id, entries[i].label, loaded_data, entries[i].max_len, entries[i].customHtml);
+                //Serial.println(String("Loading: ") + entries[i].id + ": " + loaded_data);
             }
             else
             {
                 EEPROM.write(current_size, 0);
-                parameters_.emplace_back(entries[i].id, entries[i].label, "", entries[i].max_len);
-                Serial.println(String("Creating: ") + entries[i].id);
+                parameters_.emplace_back(entries[i].id, entries[i].label, "", entries[i].max_len, entries[i].customHtml);
+                //Serial.println(String("Creating: ") + entries[i].id);
             }
             current_size += entries[i].max_len;
             wm_.addParameter(&parameters_.back());
@@ -84,16 +85,21 @@ private:
 
     void OnParamCallback()
     {
-        Serial.println("AA");
         EEPROM.begin(HEADER_SIZE + _data_size);
         uint16_t current_size = HEADER_SIZE;
         for (const auto& param : parameters_)
         {
             // Do this check to avoid dirtying EEPROM buffer if nothing changed.
+            //if ((strlen(param.getCustomHTML()) > 0) && (strstr(param.getCustomHTML(), "password") != NULL) && (strcmp(param.getValue(), "****") == 0))
+            //{
+                //Password not changed
+                //Serial.println("PWDNC");
+            //}
+            //else
             if (strncmp(reinterpret_cast<const char*>(EEPROM.getConstDataPtr() + current_size), param.getValue(), param.getValueLength()) != 0)
             {
                 strncpy(reinterpret_cast<char*>(EEPROM.getDataPtr() + current_size), param.getValue(), param.getValueLength());
-                Serial.println(String("Updating: ") + param.getID());
+                //Serial.println(String("Updating: ") + param.getID());
             }
             current_size += param.getValueLength();
         }
