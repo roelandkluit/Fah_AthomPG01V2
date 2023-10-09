@@ -32,7 +32,7 @@ String menuHtml;
 
 WiFiManager wm;
 WifiManagerParamHelper wm_helper(wm);
-uint16 registrationDelay = 0;
+uint16 registrationDelay = 2000;
 
 //ntp
 /*#include <NTPClient.h>
@@ -213,7 +213,7 @@ void SetCustomMenu(String StatusText)
     }
 
     //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Free@Home Status</button></form><br/>\n";
-    menuHtml = "Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/>\n";
+    menuHtml = "Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/><meta http-equiv='refresh' content='10'>\n";
     menuHtml.replace(T_1, State);
     menuHtml.replace(T_2, StatusText);
     menuHtml.replace(T_3, Button);
@@ -283,7 +283,13 @@ void loop()
                 if (!freeAtHomeESPapi.ConnectToSysAP(wm_helper.GetSetting(0), wm_helper.GetSetting(1), wm_helper.GetSetting(2), false))
                 {
                     SetCustomMenu(String(F("SysAp connect error")));
-                    registrationDelay = 5000;
+                    //Prevent to many retries
+                    registrationDelay = 10000;
+                }
+                else
+                {
+                    //Slow down with device registration
+                    registrationDelay = 1000;
                 }
             }
             else
@@ -303,16 +309,16 @@ void loop()
                 {
                     String t;
                     espDev->AddCallback(FahCallBack);
-                    //freeAtHomeESPapi.U64toStringDev(espDev->GetFahDeviceID(), t);
+                    freeAtHomeESPapi.U64toStringDev(espDev->GetFahDeviceID(), t);
                     //Serial.print(t);
                     //Serial.println(F(": Succes!"));
-                    SetCustomMenu(String(F("Device Registered")));
+                    SetCustomMenu(String(F("Device Registered: ")) + t);
                 }
                 else
                 {
                     SetCustomMenu(String(F("Device Registration Error")));
                     //Serial.println(F("Failed to create Virtual device, check user authorizations"));
-                    registrationDelay = 5000;
+                    registrationDelay = 30000;
                 }
             }
         }
