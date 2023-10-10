@@ -2292,8 +2292,9 @@ String WiFiManager::getInfoData(String id){
   // }
   #endif
   else if(id==F("aboutver")){
-    p = FPSTR(HTTP_INFO_aboutver);
+    p = String(FPSTR(HTTP_INFO_aboutver)) + String(FPSTR(HTTP_INFO_aboutFahConnect));
     p.replace(FPSTR(T_1),FPSTR(WM_VERSION_STR));
+    p.replace(FPSTR(T_2), FPSTR(FAH_VERSION_STR));
   }
   else if(id==F("aboutarduinover")){
     #ifdef VER_ARDUINO_STR

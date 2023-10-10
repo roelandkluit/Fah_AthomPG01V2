@@ -2,10 +2,7 @@
 
 #include <vector>
 #include <cmath>
-
 #include <EEPROM.h>
-
-#include "WiFiManager.h" // https://github.com/tzapu/WiFiManager
 
 struct ParamEntry
 {

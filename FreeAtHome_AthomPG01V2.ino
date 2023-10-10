@@ -1,5 +1,15 @@
-#include "WiFiManager.h" // https://github.com/tzapu/WiFiManager
+#include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
+
+//
+// Use MINIMAL_UPLOAD to create a small WifiManager only image for upload to small OTA partition as stepping stone
+//#define MINIMAL_UPLOAD
+
+/* Compile using:
+* *********************** *********************** *********************** *********************** **********************
+Generic ESP8285 Module, 2MB Flash, FS: 128k, OTA: ~960K
+* *********************** *********************** *********************** *********************** **********************
+*/
 
 #ifdef ESP32
 #include <dummy.h>
@@ -19,14 +29,17 @@
 #define RELAY_CONTACT_GPIO12 12
 #define BUTTON_GPIO05 5
 
+#ifndef MINIMAL_UPLOAD
 #include "FreeAtHomeESPapi.h"
 #include "FahESPDevice.h"
 #include "FahESPSwitchDevice.h"
-#include "ButtonManager.h"
 
 FreeAtHomeESPapi freeAtHomeESPapi;
-ButtonManager DeviceButton(BUTTON_GPIO05, true);
 FahESPSwitchDevice* espDev = NULL;
+#endif
+
+#include "ButtonManager.h"
+ButtonManager DeviceButton(BUTTON_GPIO05, true);
 String deviceID;
 String menuHtml;
 
@@ -64,13 +77,13 @@ constexpr std::array<ParamEntry, 3> PARAMS = { {
     }
 } };
 
+#ifndef MINIMAL_UPLOAD
 void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, const char* ptrDataPoint, void* ptrValue)
 {
     if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
     {
-        String t;
         bool val = ((bool)ptrValue);
-        freeAtHomeESPapi.U64toStringDev(FAHID, t);
+        String FahID = freeAtHomeESPapi.U64toString(FAHID);
 
         if (val)
         {
@@ -81,16 +94,19 @@ void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, 
             digitalWrite(RELAY_CONTACT_GPIO12, LOW);
         }
 
-        SetCustomMenu(String(F("Dev: ")) + t + String(F(", Event: ")) + ptrChannel + "-" + ptrDataPoint + " = " + val);
+        SetCustomMenu(String(F("Dev: ")) + FahID + String(F(", Event: ")) + ptrChannel + "-" + ptrDataPoint + " = " + val);
     }
 }
+#endif
 
 void handleDeviceState(bool state)
 {
+    #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
     {
         espDev->SetState(state);
     }
+    #endif
     wm.server->sendHeader("Location", "/", true);
     wm.server->send(302, "text/plain", "");
 }
@@ -121,6 +137,7 @@ void handleDevice()
         String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxFreeBlockSize()) + "\r\nFragemented:" + String(ESP.getHeapFragmentation()) + "\r\n";
     #endif // ESP32
 
+    #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
     {
         bool isOn = espDev->GetState();
@@ -133,6 +150,7 @@ void handleDevice()
             Text += "IsON: False";
         }
     }
+    #endif
     wm.server->send(200, "text/plain", Text.c_str());
 }
 
@@ -146,11 +164,13 @@ void OnButtonPress(bool LongPress)
     }
     else
     {
+        #ifndef MINIMAL_UPLOAD
         if (espDev != NULL)
         {
             espDev->SetState(!espDev->GetState());
             SetCustomMenu(String(F("ButtonPress: ")) + String(espDev->GetState()));
         }
+        #endif  
     }
 }
 
@@ -197,6 +217,7 @@ void SetCustomMenu(String StatusText)
 {
     String State = "Unknown";
     String Button = "";
+    #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
     {
         Button = String(F("<form action='/o{1}' method='get'><button>Turn O{1}</button></form><br/>"));
@@ -211,6 +232,7 @@ void SetCustomMenu(String StatusText)
             Button.replace(T_1, F("n"));
         }        
     }
+    #endif
 
     //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Free@Home Status</button></form><br/>\n";
     menuHtml = "Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/><meta http-equiv='refresh' content='10'>\n";
@@ -270,7 +292,7 @@ void loop()
     }
     else
     {
-
+        #ifndef MINIMAL_UPLOAD
         if (!freeAtHomeESPapi.process())
         {
             /*
@@ -307,12 +329,11 @@ void loop()
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
                 if (espDev != NULL)
                 {
-                    String t;
                     espDev->AddCallback(FahCallBack);
-                    freeAtHomeESPapi.U64toStringDev(espDev->GetFahDeviceID(), t);
+                    String FahID = freeAtHomeESPapi.U64toString(espDev->GetFahDeviceID());
                     //Serial.print(t);
                     //Serial.println(F(": Succes!"));
-                    SetCustomMenu(String(F("Device Registered: ")) + t);
+                    SetCustomMenu(String(F("Device Registered: ")) + FahID);
                 }
                 else
                 {
@@ -322,5 +343,6 @@ void loop()
                 }
             }
         }
+        #endif
     }
 }

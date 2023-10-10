@@ -18,6 +18,7 @@
 // TOKENS
 
 const char WM_VERSION_STR[] PROGMEM = "v2.0.15-rc.1";
+const char FAH_VERSION_STR[] PROGMEM = "v0.0.1 - Roeland Kluit";
 
 const uint8_t _nummenutokens = 11;
 const char * const _menutokens[_nummenutokens] PROGMEM = {

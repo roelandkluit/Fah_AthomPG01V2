@@ -146,7 +146,8 @@ const char HTTP_HELP[]             PROGMEM =
  "<tr><td>/erase</td>"
  "<td>Erase WiFi configuration and reboot device. Device will not reconnect to a network until new WiFi configuration data is entered.</td></tr>"
  "</table>"
- "<p/>Github <a href='https://github.com/tzapu/WiFiManager'>https://github.com/tzapu/WiFiManager</a>.";
+ "<p/>Github <a href='https://github.com/tzapu/WiFiManager'>https://github.com/tzapu/WiFiManager</a>."
+ "<p/>Github <a href='https://github.com/roelandkluit/Fah_AthomPG01V2'>https://github.com/roelandkluit/Fah_AthomPG01V2</a>.";
 #else
 const char HTTP_HELP[]             PROGMEM = "";
 #endif
@@ -219,6 +220,7 @@ const char HTTP_INFO_autoconx[]   PROGMEM = "<dt>Autoconnect</dt><dd>{1}</dd>";
 
 const char HTTP_INFO_aboutver[]     PROGMEM = "<dt>WiFiManager</dt><dd>{1}</dd>";
 const char HTTP_INFO_aboutarduino[] PROGMEM = "<dt>Arduino</dt><dd>{1}</dd>";
+const char HTTP_INFO_aboutFahConnect[] PROGMEM = "<dt>FreeAtHome Integration</dt><dd>{2}</dd>";
 const char HTTP_INFO_aboutsdk[]     PROGMEM = "<dt>ESP-SDK/IDF</dt><dd>{1}</dd>";
 const char HTTP_INFO_aboutdate[]    PROGMEM = "<dt>Build date</dt><dd>{1}</dd>";
 
