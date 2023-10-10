@@ -1,6 +1,13 @@
+/*
+FreeAtHome_AthomPG01V2
+Copyright 2023 Roeland Kluit, GPL License
+Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
+*/
+
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
+// Version 0.1
 //
 // Use MINIMAL_UPLOAD to create a small WifiManager only image for upload to small OTA partition as stepping stone
 //#define MINIMAL_UPLOAD
