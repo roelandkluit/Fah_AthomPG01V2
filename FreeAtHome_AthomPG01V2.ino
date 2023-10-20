@@ -1,8 +1,15 @@
-/*
-FreeAtHome_AthomPG01V2
-Copyright 2023 Roeland Kluit, GPL License
-Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-*/
+/*************************************************************************************************************
+*
+* Title			    : FreeAtHome_AthomPG01V2
+* Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
+* Version		    : v 0.2
+* Last updated      : 2023.10.20
+* Target		    : Athom Smart Plug PG01 v2
+* Author            : Roeland Kluit
+* Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
+* License           : GPL-3.0 license
+*
+**************************************************************************************************************/
 
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
@@ -52,7 +59,9 @@ String menuHtml;
 
 WiFiManager wm;
 WifiManagerParamHelper wm_helper(wm);
-uint16 registrationDelay = 2000;
+uint16_t registrationDelay = 2000;
+uint16_t regCount = 0;
+uint16_t regCountFail = 0;
 
 //ntp
 /*#include <NTPClient.h>
@@ -114,8 +123,8 @@ void handleDeviceState(bool state)
         espDev->SetState(state);
     }
     #endif
-    wm.server->sendHeader("Location", "/", true);
-    wm.server->send(302, "text/plain", "");
+    wm.server->sendHeader(String(F("Location")), "/", true);
+    wm.server->send(302, String(F("text/plain")), "");
 }
 
 void handleDeviceOn()
@@ -139,9 +148,9 @@ void handleDevice()
     #endif // ESP32
     */
     #ifdef ESP32
-        String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxAllocHeap()) + "\r\n";
+        String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxAllocHeap()) + "\r\n";q
     #else //ESP8266
-        String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxFreeBlockSize()) + "\r\nFragemented:" + String(ESP.getHeapFragmentation()) + "\r\n";
+        String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented:")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP:")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount:")) + String(regCount) + String(F("\r\nConnectFail:")) + String(regCountFail);
     #endif // ESP32
 
     #ifndef MINIMAL_UPLOAD
@@ -150,15 +159,15 @@ void handleDevice()
         bool isOn = espDev->GetState();
         if (isOn)
         {
-            Text += "IsON: True";
+            Text += String(F("\r\nIsON: True"));
         }
         else
         {
-            Text += "IsON: False";
+            Text += String(F("\r\nIsON: False"));
         }
     }
     #endif
-    wm.server->send(200, "text/plain", Text.c_str());
+    wm.server->send(200, String(F("text/plain")), Text.c_str());
 }
 
 void OnButtonPress(bool LongPress)
@@ -222,7 +231,7 @@ void setup()
 
 void SetCustomMenu(String StatusText)
 {
-    String State = "Unknown";
+    String State = String(F("Unknown"));
     String Button = "";
     #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
@@ -230,19 +239,19 @@ void SetCustomMenu(String StatusText)
         Button = String(F("<form action='/o{1}' method='get'><button>Turn O{1}</button></form><br/>"));
         if (espDev->GetState())
         {
-            State = "On";
+            State = String(F("On"));
             Button.replace(T_1, F("ff"));
         }
         else
         {
-            State = "Off";
+            State = String(F("Off"));
             Button.replace(T_1, F("n"));
         }        
     }
     #endif
 
     //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Free@Home Status</button></form><br/>\n";
-    menuHtml = "Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/><meta http-equiv='refresh' content='10'>\n";
+    menuHtml = String(F("Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
     menuHtml.replace(T_1, State);
     menuHtml.replace(T_2, StatusText);
     menuHtml.replace(T_3, Button);
@@ -289,6 +298,15 @@ void loop()
         }
     }*/
 
+    /*
+    if (Serial.available())
+    {
+        while (Serial.available())
+        {
+            Serial.read();
+        }
+    }*/
+
     DeviceButton.process();
     wm.process();
 
@@ -314,11 +332,11 @@ void loop()
                     SetCustomMenu(String(F("SysAp connect error")));
                     //Prevent to many retries
                     registrationDelay = 10000;
+                    regCountFail++;
                 }
                 else
                 {
-                    //Slow down with device registration
-                    registrationDelay = 1000;
+                    regCount++;
                 }
             }
             else
@@ -331,6 +349,10 @@ void loop()
         {
             if (espDev == NULL)
             {
+                //Clear string for as high as possible heap placement
+                wm.setCustomMenuHTML(NULL);
+                menuHtml = "";
+
                 //Serial.println(F("Create Switch Device"));
                 String deviceName = String(F("Athom PG01 ")) + String(WIFI_getChipId(), HEX);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
