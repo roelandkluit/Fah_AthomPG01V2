@@ -44,7 +44,7 @@ The plug will now reboot and be reset for usage with FreeAtHome</br>
 
 - Connect to to Wifi Hotspot created by the Athom plug. The Wifi network name will start with AthomPG01V2 and end with the device ID
 - A Wifi landing page will open, Configure the Wifi.</br>
-![](./Resources/Step4.png)</br>
+![](./Resources/Step4m.png)</br>
 
 - Upon successful configuration, the plug will reboot and connect to the configured Wifi.</br>
 - Open the FreeAtHome Athom plug's portal website once connected to the Wifi, and click setup</br>
