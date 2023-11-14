@@ -9,7 +9,7 @@
  * @version 0.0.0
  * @license MIT
  */
-
+#define WM_NODEBUG
 
 #ifndef WiFiManager_h
 #define WiFiManager_h
@@ -778,7 +778,7 @@ class WiFiManager
     
     // Set default debug level
     #ifndef WM_DEBUG_LEVEL
-    #define WM_DEBUG_LEVEL DEBUG_NOTIFY
+    #define WM_DEBUG_LEVEL DEBUG_VERBOSE
     #endif
 
     // override debug level OFF

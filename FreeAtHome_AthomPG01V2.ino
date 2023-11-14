@@ -14,10 +14,7 @@
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
-// Version 0.1
-//
-// Use MINIMAL_UPLOAD to create a small WifiManager only image for upload to small OTA partition as stepping stone
-//#define MINIMAL_UPLOAD
+// Version 0.5
 
 /* Compile using:
 * *********************** *********************** *********************** *********************** **********************
@@ -25,32 +22,24 @@ Generic ESP8285 Module, 2MB Flash, FS: 128k, OTA: ~960K
 * *********************** *********************** *********************** *********************** **********************
 */
 
-#ifdef ESP32
-#include <dummy.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
-//#include <WebServer.h>
-#else
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-//#include <ESP8266WebServer.h>
 #else
 #error "Platform not supported"
-#endif
 #endif
 
 #define RELAY_CONTACT_GPIO12 12
 #define BUTTON_GPIO05 5
+#define CSE7766_RXPIN_GPIO3 3
 
-#ifndef MINIMAL_UPLOAD
+#include "CSE7766.h"
 #include "FreeAtHomeESPapi.h"
 #include "FahESPDevice.h"
 #include "FahESPSwitchDevice.h"
 
 FreeAtHomeESPapi freeAtHomeESPapi;
 FahESPSwitchDevice* espDev = NULL;
-#endif
 
 #include "ButtonManager.h"
 ButtonManager DeviceButton(BUTTON_GPIO05, true);
@@ -63,13 +52,7 @@ uint16_t registrationDelay = 2000;
 uint16_t regCount = 0;
 uint16_t regCountFail = 0;
 
-//ntp
-/*#include <NTPClient.h>
-#include <WiFiUdp.h>
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 0);
-unsigned long boot_unixtimestamp = 0;
-*/
+CSE7766 oCSE7766;
 
 constexpr size_t CUSTOM_FIELD_LEN = 40;
 constexpr std::array<ParamEntry, 3> PARAMS = { {
@@ -93,7 +76,6 @@ constexpr std::array<ParamEntry, 3> PARAMS = { {
     }
 } };
 
-#ifndef MINIMAL_UPLOAD
 void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, const char* ptrDataPoint, void* ptrValue)
 {
     if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
@@ -110,10 +92,9 @@ void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, 
             digitalWrite(RELAY_CONTACT_GPIO12, LOW);
         }
 
-        SetCustomMenu(String(F("Dev: ")) + FahID + String(F(", Event: ")) + ptrChannel + "-" + ptrDataPoint + " = " + val);
+        SetCustomMenu(String(F("Device: ")) + FahID + String(F(", Event: ")) + ptrChannel + "." + ptrDataPoint + " = " + val);
     }
 }
-#endif
 
 void handleDeviceState(bool state)
 {
@@ -137,23 +118,10 @@ void handleDeviceOff()
     handleDeviceState(false);
 }
 
-void handleDevice()
+void handleDbgSys()
 {
-    /*
-    String Date = GetDateTime(boot_unixtimestamp);
-    #ifdef ESP32
-        String Text = "Timestamp: " + Date + " > " + String(boot_unixtimestamp) + "\r\nHeap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxAllocHeap()) + "\r\n";
-    #else //ESP8266
-        String Text = "Timestamp: " + Date + " > " + String(boot_unixtimestamp) + "\r\nHeap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxFreeBlockSize()) + "\r\nFragemented:" + String(ESP.getHeapFragmentation()) + "\r\n";
-    #endif // ESP32
-    */
-    #ifdef ESP32
-        String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxAllocHeap()) + "\r\n";q
-    #else //ESP8266
-        String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented:")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP:")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount:")) + String(regCount) + String(F("\r\nConnectFail:")) + String(regCountFail);
-    #endif // ESP32
+    String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented:")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP:")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount:")) + String(regCount) + String(F("\r\nConnectFail:")) + String(regCountFail);    
 
-    #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
     {
         bool isOn = espDev->GetState();
@@ -166,7 +134,17 @@ void handleDevice()
             Text += String(F("\r\nIsON: False"));
         }
     }
-    #endif
+    
+    Text += String(F("\r\nVoltage: ")) + String(oCSE7766.getVoltage());
+    Text += String(F("\r\nCurrent: ")) + String(oCSE7766.getCurrent());
+    Text += String(F("\r\nPower: ")) + String(oCSE7766.getActivePower());
+    /*DEBUG_MSG("Current %.4f A\n", oCSE7766.getCurrent());
+    DEBUG_MSG("ActivePower %.4f W\n", oCSE7766.getActivePower());
+    DEBUG_MSG("ApparentPower %.4f VA\n", oCSE7766.getApparentPower());
+    DEBUG_MSG("ReactivePower %.4f VAR\n", oCSE7766.getReactivePower());
+    DEBUG_MSG("PowerFactor %.4f %\n", oCSE7766.getPowerFactor());
+    DEBUG_MSG("Energy %.4f Ws\n", oCSE7766.getEnergy());*/
+
     wm.server->send(200, String(F("text/plain")), Text.c_str());
 }
 
@@ -180,13 +158,11 @@ void OnButtonPress(bool LongPress)
     }
     else
     {
-        #ifndef MINIMAL_UPLOAD
         if (espDev != NULL)
         {
             espDev->SetState(!espDev->GetState());
             SetCustomMenu(String(F("ButtonPress: ")) + String(espDev->GetState()));
         }
-        #endif  
     }
 }
 
@@ -201,7 +177,8 @@ void setup()
     //Serial.begin(115200);
 
     pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
-    digitalWrite(RELAY_CONTACT_GPIO12, LOW);
+    //On or OFF state is now requested from SysAP
+    //digitalWrite(RELAY_CONTACT_GPIO12, LOW);
 
     DeviceButton.OnButtonPressEvent(&OnButtonPress);
 
@@ -219,14 +196,17 @@ void setup()
         WiFi.mode(WIFI_STA);
         wm.startWebPortal();
         wm.setShowInfoUpdate(true);
-        wm.server->on("/fah", handleDevice);
+        wm.server->on("/dbgs", handleDbgSys);
         wm.server->on("/on", handleDeviceOn);
         wm.server->on("/off", handleDeviceOff);
         SetCustomMenu(String(F("Initializing")));
         std::vector<const char*> _menuIdsUpdate = {"custom", "sep", "wifi","param","info","update" };
         wm.setMenu(_menuIdsUpdate);
     }
-    //timeClient.begin();
+
+    //Power and voltage monitor chip
+    oCSE7766.setRX(CSE7766_RXPIN_GPIO3);
+    oCSE7766.begin(); // will initialize serial to 4800 bps
 }
 
 void SetCustomMenu(String StatusText)
@@ -250,8 +230,8 @@ void SetCustomMenu(String StatusText)
     }
     #endif
 
-    //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Free@Home Status</button></form><br/>\n";
-    menuHtml = String(F("Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/fah' method='get'><button>Free@Home Status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
+    //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Debug Status</button></form><br/>\n";
+    menuHtml = String(F("Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/dbgs' method='get'><button>Debug status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
     menuHtml.replace(T_1, State);
     menuHtml.replace(T_2, StatusText);
     menuHtml.replace(T_3, Button);
@@ -259,56 +239,10 @@ void SetCustomMenu(String StatusText)
     wm.setCustomMenuHTML(menuHtml.c_str());
 }
 
-/*String GetDateTime(uint32_t t) {
-    // http://howardhinnant.github.io/date_algorithms.html#civil_from_days
-    //t += _gmt * 3600ul;
-    uint8_t second = t % 60ul;
-    t /= 60ul;
-    uint8_t minute = t % 60ul;
-    t /= 60ul;
-    uint8_t hour = t % 24ul;
-    t /= 24ul;
-    //dayOfWeek = (t + 4) % 7;
-    //if (!dayOfWeek) dayOfWeek = 7;
-    uint32_t z = t + 719468;
-    uint8_t era = z / 146097ul;
-    uint16_t doe = z - era * 146097ul;
-    uint16_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    uint16_t y = yoe + era * 400;
-    uint16_t doy = doe - (yoe * 365 + yoe / 4 - yoe / 100);
-    uint16_t mp = (doy * 5 + 2) / 153;
-    uint8_t day = doy - (mp * 153 + 2) / 5 + 1;
-    uint8_t month = mp + (mp < 10 ? 3 : -9);
-    y += (month <= 2);
-    uint16_t year = y;
-
-    String Date = String(year) + "-" + String(month) + "-" + String(day) + " " + String(hour) + ":" + String(minute) + "." + String(second);
-    return Date;
-}*/
-
 void loop()
 {
-    /*if (boot_unixtimestamp == 0)
-    {
-        timeClient.update();
-        if (timeClient.isTimeSet())
-        {
-            boot_unixtimestamp = timeClient.getEpochTime();
-            timeClient.end();
-        }
-    }*/
-
-    /*
-    if (Serial.available())
-    {
-        while (Serial.available())
-        {
-            Serial.read();
-        }
-    }*/
-
     DeviceButton.process();
-    wm.process();
+    wm.process();    
 
     if (registrationDelay > 0)
     {
@@ -317,7 +251,6 @@ void loop()
     }
     else
     {
-        #ifndef MINIMAL_UPLOAD
         if (!freeAtHomeESPapi.process())
         {
             /*
@@ -336,6 +269,7 @@ void loop()
                 }
                 else
                 {
+                    SetCustomMenu(String(F("SysAp connected")));
                     regCount++;
                 }
             }
@@ -356,6 +290,7 @@ void loop()
                 //Serial.println(F("Create Switch Device"));
                 String deviceName = String(F("Athom PG01 ")) + String(WIFI_getChipId(), HEX);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
+                //Todo Add callback!
                 if (espDev != NULL)
                 {
                     espDev->AddCallback(FahCallBack);
@@ -371,7 +306,10 @@ void loop()
                     registrationDelay = 30000;
                 }
             }
+            else
+            {
+                oCSE7766.handle();
+            }
         }
-        #endif
     }
 }
