@@ -15,7 +15,7 @@ http://sysap/swagger/users
 ## Notes ##
 The firmware is only intended for the device detailed above. However, the procedure or any mistake during the procedure might leave the device in a unusable state. The device then must be reprogrammed using the serial interface after opening the case.</br>
 </br>
-The internal voltage and wattage sensors are not currently implemented in this version of the Firmware.</br>
+The internal voltage and wattage sensors are currently implemented only for providing status information, they are not send to the SysAP in this version of the Firmware.</br>
 </br>
 ***
 THE CONTENT AND INSTRUCTIONS ARE PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IT ALSO DOES NOT WARRANT THE ACCURACY OF THE INFORMATION IN THE CONTENT.
