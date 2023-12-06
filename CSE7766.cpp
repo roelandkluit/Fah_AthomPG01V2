@@ -7,36 +7,24 @@
 #include "CSE7766.h"
 
 // Constructor
-  CSE7766::CSE7766() {
+  CSE7766::CSE7766(HardwareSerial* hwSer)
+  {
+      hwSerialPort = hwSer;
   }
 // Destructor
-  CSE7766::~CSE7766() {
-      if (_serial) delete _serial;
-      //end();
-  }
-
-
-  void CSE7766::setRX(unsigned char pin_rx) {
-      if (_pin_rx == pin_rx) return;
-      _pin_rx = pin_rx;
-      _dirty = true;
+  CSE7766::~CSE7766()
+  {
+      hwSerialPort = NULL;
   }
 
   void CSE7766::setInverted(bool inverted) {
       if (_inverted == inverted) return;
       _inverted = inverted;
-      _dirty = true;
-  }
-
-
-  unsigned char CSE7766::getRX() {
-      return _pin_rx;
   }
 
   bool CSE7766::getInverted() {
       return _inverted;
   }
-
 
   void CSE7766::expectedCurrent(double expected) {
       if ((expected > 0) && (_current > 0)) {
@@ -122,44 +110,18 @@
       return _energy;
   }
   
-  void CSE7766::begin() {
-
-      if (!_dirty) return;
-
-      if (_serial) delete _serial;
-
-#ifdef ESP8266
-      if (3 == _pin_rx) {
-          Serial.begin(CSE7766_BAUDRATE);
-      }
-#elif ESP32
-      if (16== _pin_rx){
-          Serial2.begin(CSE7766_BAUDRATE);        
-      } 
-#else
-      if (1 == _pin_rx) {
-          Serial.begin(CSE7766_BAUDRATE);
-      }
-#endif
-      else {
-          _serial = new SoftwareSerial(_pin_rx, -1, _inverted);
-          _serial->enableIntTx(false);
-          _serial->begin(CSE7766_BAUDRATE);
-      }
-
+  void CSE7766::begin()
+  {   
+      hwSerialPort->begin(CSE7766_BAUDRATE);
       _ready = true;
-      _dirty = false;
-
   }
 
-  void CSE7766::handle() {
-
+  void CSE7766::handle()
+  {      
       if (!_ready) return;
       _read();
 
   }
-
-
   
   // ---------------------------------------------------------------------
   // private
@@ -273,21 +235,26 @@
 
       _error = SENSOR_ERROR_OK;
 
-      static unsigned char index = 0;
-      static unsigned long last = millis();
+      uint8_t index = 0;
+      unsigned long last = millis();
 
       while (_serial_available()) {
-
+          
           // A 24 bytes message takes ~55ms to go through at 4800 bps
           // Reset counter if more than 1000ms have passed since last byte.
-          if (millis() - last > CSE7766_SYNC_INTERVAL) index = 0;
-          last = millis();
+          if (millis() - last > CSE7766_SYNC_INTERVAL)
+          {
+              //No sure if this time tracking will ever work
+              index = 0;
+              last = millis();
+          }          
 
           uint8_t byte = _serial_read();
 
           // first byte must be 0x55 or 0xF?
           if (0 == index) {
-              if ((0x55 != byte) && (byte < 0xF0)) {
+              if ((0x55 != byte) && (byte < 0xF0))
+              {
                   continue;
               }
 
@@ -300,11 +267,11 @@
           }
 
           _data[index++] = byte;
-          if (index > 23) {
+          if (index > 23)
+          {
               _serial_flush();
               break;
           }
-
       }
 
       // Process packet
@@ -315,62 +282,17 @@
 
   }
 
-
   bool CSE7766::_serial_available()
   {
-    #ifdef ESP8266
-      if (3 == _pin_rx) {
-          return Serial.available();
-      }
-    #elif ESP32
-      if (16 == _pin_rx) {
-          return Serial2.available();
-      }
-    #else
-      if (1 == _pin_rx) {
-          return Serial.available();
-      }
-    #endif
-      else
-      {
-          return _serial->available();
-      }
+      return hwSerialPort->available();
   }
 
-  void CSE7766::_serial_flush() {
-    #ifdef ESP8266
-      if (3 == _pin_rx) {
-          return Serial.flush();
-      }
-    #elif ESP32
-      if (16 == _pin_rx) {
-          return Serial2.flush();
-      }
-    #else
-      if (1 == _pin_rx) {
-          return Serial.flush();
-      }
-    #endif
-      else {
-          return _serial->flush();
-      }
+  void CSE7766::_serial_flush()
+  {
+      hwSerialPort->flush();
   }
 
-  uint8_t CSE7766::_serial_read() {
-    #ifdef ESP8266
-      if (3 == _pin_rx) {
-          return Serial.read();
-      }
-    #elif ESP32
-      if (16 == _pin_rx) {
-          return Serial2.read();;
-      }
-    #else
-      if (1 == _pin_rx) {
-          return Serial.read();
-      }
-    #endif
-      else {
-          return _serial->read();
-      }
+  uint8_t CSE7766::_serial_read()
+  {
+    return hwSerialPort->read();
   }

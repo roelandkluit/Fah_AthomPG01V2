@@ -10,7 +10,7 @@
 #define CSE7766_h
 
 #include "Arduino.h"
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 
 #ifndef CSE7766_PIN
 #define CSE7766_PIN                     1       // TX pin from the CSE7766
@@ -44,12 +44,11 @@ public:
 // ---------------------------------------------------------------------
 // Public
 // ---------------------------------------------------------------------
-
-  CSE7766();
+ 
+  CSE7766(HardwareSerial* hwSer);
   virtual ~CSE7766();
-  void setRX(unsigned char pin_rx);
+  //void setRX(unsigned char pin_rx);
   void setInverted(bool inverted);
-  unsigned char getRX();
   bool getInverted();
   void expectedCurrent(double expected);
   void expectedVoltage(unsigned int expected);
@@ -80,12 +79,11 @@ private:
 // ---------------------------------------------------------------------
 
   int _error = 0;
-  bool _dirty = true;
   bool _ready = false;
-  unsigned int _pin_rx = CSE7766_PIN;
+  
+  HardwareSerial* hwSerialPort;
   bool _inverted = CSE7766_PIN_INVERSE;
-  SoftwareSerial * _serial = NULL;
-
+  
   double _active = 0;
   double _voltage = 0;
   double _current = 0;

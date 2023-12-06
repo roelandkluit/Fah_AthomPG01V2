@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.5
-* Last updated      : 2023.11.19
+* Version		    : v 0.7
+* Last updated      : 2023.12.06
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
@@ -14,13 +14,15 @@
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
-// Version 0.5
+// Version 0.7
 
 /* Compile using:
 * *********************** *********************** *********************** *********************** **********************
 Generic ESP8285 Module, 2MB Flash, FS: 128k, OTA: ~960K
 * *********************** *********************** *********************** *********************** **********************
 */
+
+//#define DEBUG
 
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
@@ -31,7 +33,13 @@ Generic ESP8285 Module, 2MB Flash, FS: 128k, OTA: ~960K
 
 #define RELAY_CONTACT_GPIO12 12
 #define BUTTON_GPIO05 5
-#define CSE7766_RXPIN_GPIO3 3
+
+#ifdef DEBUG
+    //Use serial 2 in case debugger is connected to serial 0
+    #define CSE7766_RX_SERIAL Serial1
+#else
+    #define CSE7766_RX_SERIAL Serial
+#endif // DEBUG
 
 #include "CSE7766.h"
 #include "FreeAtHomeESPapi.h"
@@ -52,9 +60,7 @@ uint16_t registrationDelay = 2000;
 uint16_t regCount = 0;
 uint16_t regCountFail = 0;
 
-CSE7766 oCSE7766;
-
-#define DEBUG
+CSE7766 oCSE7766(&CSE7766_RX_SERIAL);
 
 #ifdef DEBUG
 #define DEBUG_PL Serial.println
@@ -96,13 +102,14 @@ constexpr std::array<ParamEntry, 4> PARAMS = { {
 
 void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, const char* ptrDataPoint, void* ptrValue)
 {
-    /*if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DISPLAYNAME)
+    if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DISPLAYNAME)
     {
-        char* val = ((char*)ptrValue);
+        DEBUG_P(F("PARM_DISPLAYNAME "));
+        const char* val = ((char*)ptrValue);
+        DEBUG_PL(val);
         wm_helper.setSetting(3, val, strlen(val));
-        
     }
-    else*/if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
+    else if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
     {
         bool val = ((bool)ptrValue);
         String FahID = freeAtHomeESPapi.U64toString(FAHID);
@@ -158,7 +165,7 @@ void handleDbgSys()
             Text += String(F("\r\nIsON: False"));
         }
     }
-    
+
     Text += String(F("\r\nVoltage: ")) + String(oCSE7766.getVoltage());
     Text += String(F("\r\nCurrent: ")) + String(oCSE7766.getCurrent());
     Text += String(F("\r\nPower: ")) + String(oCSE7766.getActivePower());
@@ -201,7 +208,7 @@ void setup()
     deviceID = String(F("AthomPG01V2_")) + String(WIFI_getChipId(), HEX);
     WiFi.mode(WIFI_AP_STA); // explicitly set mode, esp defaults to STA+AP
     wm.setDebugOutput(false);
-    wm_helper.Init(0x1ABB, PARAMS.data(), PARAMS.size());
+    wm_helper.Init(0xABBF, PARAMS.data(), PARAMS.size());
     wm.setHostname(deviceID);
 
     pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
@@ -233,12 +240,12 @@ void setup()
     }
 
     //Power and voltage monitor chip
-    oCSE7766.setRX(CSE7766_RXPIN_GPIO3);
     oCSE7766.begin(); // will initialize serial to 4800 bps
 }
 
 void SetCustomMenu(String StatusText)
 {
+    DEBUG_PL(StatusText);
     String State = String(F("Unknown"));
     String Button = "";
     #ifndef MINIMAL_UPLOAD
@@ -317,15 +324,15 @@ void loop()
 
                 DEBUG_PL(F("Create Switch Device"));
                 String deviceName = String(F("Athom PG01 ")) + String(WIFI_getChipId(), HEX);
-                /*const char* val = wm_helper.GetSetting(3);
+                const char* val = wm_helper.GetSetting(3);
                 if (strlen(val) > 0)
                 {
                     deviceName = String(val);
-                }*/
+                }
                 DEBUG_P(F("Using:"));
                 DEBUG_PL(deviceName);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
-                //Todo Add callback!
+                
                 if (espDev != NULL)
                 {
                     espDev->AddCallback(FahCallBack);

@@ -92,6 +92,7 @@ public:
         if (idx < parameters_.size())
         {
             parameters_[idx].setValue(value, length);
+            OnParamCallback();
         }
     }
 
