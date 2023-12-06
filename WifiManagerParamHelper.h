@@ -87,6 +87,15 @@ public:
         return nullptr;
     }
 
+    void setSetting(size_t idx, const char* value, const int &length)
+    {
+        if (idx < parameters_.size())
+        {
+            parameters_[idx].setValue(value, length);
+        }
+    }
+
+
 private:
     static constexpr size_t HEADER_SIZE = sizeof(uint16_t) * 2;
     size_t _data_size = 0;

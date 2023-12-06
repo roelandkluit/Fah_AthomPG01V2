@@ -54,8 +54,20 @@ uint16_t regCountFail = 0;
 
 CSE7766 oCSE7766;
 
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_PL Serial.println
+#define DEBUG_P Serial.print
+#define DEBUG_F Serial.printf
+#else
+#define DEBUG_PL(MSG)
+#define DEBUG_P(MSG)
+#define DEBUG_F(MSG)
+#endif
+
 constexpr size_t CUSTOM_FIELD_LEN = 40;
-constexpr std::array<ParamEntry, 3> PARAMS = { {
+constexpr std::array<ParamEntry, 4> PARAMS = { {
     {
       "Ap",
       "SysAp",
@@ -73,12 +85,24 @@ constexpr std::array<ParamEntry, 3> PARAMS = { {
       "Password",
       CUSTOM_FIELD_LEN,
       "type=\"password\""
+    },
+    {
+      "dn",
+      "Name",
+      CUSTOM_FIELD_LEN,
+      ""
     }
 } };
 
 void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, const char* ptrDataPoint, void* ptrValue)
 {
-    if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
+    /*if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DISPLAYNAME)
+    {
+        char* val = ((char*)ptrValue);
+        wm_helper.setSetting(3, val, strlen(val));
+        
+    }
+    else*/if (Event == FAHESPAPI_EVENT::FAHESPAPI_ON_DEVICE_EVENT)
     {
         bool val = ((bool)ptrValue);
         String FahID = freeAtHomeESPapi.U64toString(FAHID);
@@ -152,7 +176,7 @@ void OnButtonPress(bool LongPress)
 {
     if (LongPress)
     {
-        String(F("Reset"));
+        DEBUG_PL(F("Reset"));
         delay(5000);
         ESP.reset();
     }
@@ -168,13 +192,17 @@ void OnButtonPress(bool LongPress)
 
 void setup()
 {
+    #ifdef DEBUG
+        Serial.begin(115200);
+        delay(500);
+        DEBUG_PL(F("Starting"));
+    #endif // DEBUG
+
     deviceID = String(F("AthomPG01V2_")) + String(WIFI_getChipId(), HEX);
     WiFi.mode(WIFI_AP_STA); // explicitly set mode, esp defaults to STA+AP
     wm.setDebugOutput(false);
-    wm_helper.Init(0xABB, PARAMS.data(), PARAMS.size());
+    wm_helper.Init(0x1ABB, PARAMS.data(), PARAMS.size());
     wm.setHostname(deviceID);
-
-    //Serial.begin(115200);
 
     pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
     //On or OFF state is now requested from SysAP
@@ -186,13 +214,13 @@ void setup()
 
     if (!res)
     {
-        //Serial.println(F("Failed to connect"));
+        DEBUG_PL(F("Failed to connect"));
         ESP.restart();
     }
     else 
     {
         //if you get here you have connected to the WiFi
-        //Serial.println(F("connected"));
+        DEBUG_PL(F("connected"));
         WiFi.mode(WIFI_STA);
         wm.startWebPortal();
         wm.setShowInfoUpdate(true);
@@ -287,8 +315,15 @@ void loop()
                 wm.setCustomMenuHTML(NULL);
                 menuHtml = "";
 
-                //Serial.println(F("Create Switch Device"));
+                DEBUG_PL(F("Create Switch Device"));
                 String deviceName = String(F("Athom PG01 ")) + String(WIFI_getChipId(), HEX);
+                /*const char* val = wm_helper.GetSetting(3);
+                if (strlen(val) > 0)
+                {
+                    deviceName = String(val);
+                }*/
+                DEBUG_P(F("Using:"));
+                DEBUG_PL(deviceName);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
                 //Todo Add callback!
                 if (espDev != NULL)
