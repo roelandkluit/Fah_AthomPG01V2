@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.7
-* Last updated      : 2023.12.06
+* Version		    : v 0.8
+* Last updated      : 2023.12.08
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
@@ -14,7 +14,7 @@
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
-// Version 0.7
+// Version 0.8
 
 /* Compile using:
 * *********************** *********************** *********************** *********************** **********************
