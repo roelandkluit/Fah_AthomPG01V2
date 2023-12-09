@@ -235,16 +235,12 @@
 
       _error = SENSOR_ERROR_OK;
 
-      uint8_t index = 0;
-      unsigned long last = millis();
-
       while (_serial_available()) {
           
           // A 24 bytes message takes ~55ms to go through at 4800 bps
           // Reset counter if more than 1000ms have passed since last byte.
           if (millis() - last > CSE7766_SYNC_INTERVAL)
           {
-              //No sure if this time tracking will ever work
               index = 0;
               last = millis();
           }          

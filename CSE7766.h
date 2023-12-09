@@ -80,6 +80,8 @@ private:
 
   int _error = 0;
   bool _ready = false;
+  uint8_t index = 0;
+  unsigned long last = millis();
   
   HardwareSerial* hwSerialPort;
   bool _inverted = CSE7766_PIN_INVERSE;

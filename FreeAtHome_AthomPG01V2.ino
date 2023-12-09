@@ -169,12 +169,10 @@ void handleDbgSys()
     Text += String(F("\r\nVoltage: ")) + String(oCSE7766.getVoltage());
     Text += String(F("\r\nCurrent: ")) + String(oCSE7766.getCurrent());
     Text += String(F("\r\nPower: ")) + String(oCSE7766.getActivePower());
-    /*DEBUG_MSG("Current %.4f A\n", oCSE7766.getCurrent());
-    DEBUG_MSG("ActivePower %.4f W\n", oCSE7766.getActivePower());
-    DEBUG_MSG("ApparentPower %.4f VA\n", oCSE7766.getApparentPower());
-    DEBUG_MSG("ReactivePower %.4f VAR\n", oCSE7766.getReactivePower());
-    DEBUG_MSG("PowerFactor %.4f %\n", oCSE7766.getPowerFactor());
-    DEBUG_MSG("Energy %.4f Ws\n", oCSE7766.getEnergy());*/
+    Text += String(F("\r\nApperentPower: ")) + String(oCSE7766.getApparentPower());
+    Text += String(F("\r\nReactivePower: ")) + String(oCSE7766.getReactivePower());
+    Text += String(F("\r\nPowerFactor: ")) + String(oCSE7766.getPowerFactor());
+    Text += String(F("\r\nEnergy: ")) + String(oCSE7766.getEnergy());
 
     wm.server->send(200, String(F("text/plain")), Text.c_str());
 }
