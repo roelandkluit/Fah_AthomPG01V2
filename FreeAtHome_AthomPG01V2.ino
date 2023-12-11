@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.8
-* Last updated      : 2023.12.08
+* Version		    : v 0.9
+* Last updated      : 2023.12.11
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
@@ -14,7 +14,7 @@
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
-// Version 0.8
+// Version 0.9
 
 /* Compile using:
 * *********************** *********************** *********************** *********************** **********************
@@ -264,7 +264,8 @@ void SetCustomMenu(String StatusText)
     #endif
 
     //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Debug Status</button></form><br/>\n";
-    menuHtml = String(F("Relay is: {1}<br/>{2}<hr/><br/>{3}<form action='/dbgs' method='get'><button>Debug status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
+    menuHtml = String(F("Name: {n}<br/>Relay: {1}<br/>{2}<hr/><br/>{3}<form action='/dbgs' method='get'><button>Debug status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
+    menuHtml.replace(T_n, wm_helper.GetSetting(3));
     menuHtml.replace(T_1, State);
     menuHtml.replace(T_2, StatusText);
     menuHtml.replace(T_3, Button);
