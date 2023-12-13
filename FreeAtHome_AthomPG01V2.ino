@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.9
-* Last updated      : 2023.12.11
+* Version		    : v 0.10
+* Last updated      : 2023.12.13
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
@@ -151,7 +151,7 @@ void handleDeviceOff()
 
 void handleDbgSys()
 {
-    String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented:")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP:")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount:")) + String(regCount) + String(F("\r\nConnectFail:")) + String(regCountFail);    
+    String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented: ")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP: ")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount: ")) + String(regCount) + String(F("\r\nConnectFail: ")) + String(regCountFail);
 
     if (espDev != NULL)
     {
@@ -328,7 +328,7 @@ void loop()
                 {
                     deviceName = String(val);
                 }
-                DEBUG_P(F("Using:"));
+                DEBUG_P(F("Using: "));
                 DEBUG_PL(deviceName);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
                 
