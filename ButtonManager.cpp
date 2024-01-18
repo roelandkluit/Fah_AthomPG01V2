@@ -34,7 +34,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ButtonManager.h"
 
-#define LONG_PRESS 2000
+#define LONG_PRESS 3000
+#define MINIMAL_PRESS 50
 #define SHORT_PRESS 1
 
 void ButtonManager::NotifyPress(bool LongButtonPress)
@@ -82,7 +83,11 @@ void ButtonManager::process()
 	{
 		if (previousMillis != 0)
 		{
-			if (bLongPressHasBeenNotified)
+			if (millis() - previousMillis < (MINIMAL_PRESS))
+			{
+				//Ignore, could be power or reading glitch
+			}
+			else if (bLongPressHasBeenNotified)
 			{
 				//Ignore, previously notified
 			}
