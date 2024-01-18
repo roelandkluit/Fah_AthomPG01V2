@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 Roeland Kluit - v1.0 January 2021
+Copyright (C) 2024 Roeland Kluit - v1.1 January 2024
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
