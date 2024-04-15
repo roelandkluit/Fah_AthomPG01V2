@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.11
-* Last updated      : 2024.01.18
+* Version		    : v 0.12
+* Last updated      : 2024.04.15
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2

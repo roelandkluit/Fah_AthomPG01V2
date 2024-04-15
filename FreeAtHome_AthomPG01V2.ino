@@ -2,8 +2,8 @@
 *
 * Title			    : FreeAtHome_AthomPG01V2
 * Description:      : Implements the Busch-Jeager / ABB Free@Home API for Athom PG01 Version 2 Socket.
-* Version		    : v 0.11
-* Last updated      : 2024.01.18
+* Version		    : v 0.12
+* Last updated      : 2024.04.15
 * Target		    : Athom Smart Plug PG01 v2
 * Author            : Roeland Kluit
 * Web               : https://github.com/roelandkluit/Fah_AthomPG01V2
@@ -14,7 +14,7 @@
 #include "WiFiManager.h" // original from https://github.com/tzapu/WiFiManager
 #include "WifiManagerParamHelper.h"
 
-// Version 0.11
+// Version 0.12
 
 /* Compile using:
 * *********************** *********************** *********************** *********************** **********************
@@ -203,19 +203,23 @@ void setup()
         DEBUG_PL(F("Starting"));
     #endif // DEBUG
 
+    pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
+
     deviceID = String(F("AthomPG01V2_")) + String(WIFI_getChipId(), HEX);
     WiFi.mode(WIFI_AP_STA); // explicitly set mode, esp defaults to STA+AP
     wm.setDebugOutput(false);
     wm_helper.Init(0xABBF, PARAMS.data(), PARAMS.size());
     wm.setHostname(deviceID);
-
-    pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
+    
     //On or OFF state is now requested from SysAP
     //digitalWrite(RELAY_CONTACT_GPIO12, LOW);
 
+    wm.setConfigPortalTimeout(300);
+    wm.setConnectTimeout(20);
     DeviceButton.OnButtonPressEvent(&OnButtonPress);
+    //wm.setDebugOutput(true);
 
-    bool res = wm.autoConnect(deviceID.c_str()); // Non password protected AP
+    bool res = wm.autoConnect(deviceID.c_str()); // start autoconnect or Non password protected AP
 
     if (!res)
     {
@@ -226,6 +230,7 @@ void setup()
     {
         //if you get here you have connected to the WiFi
         DEBUG_PL(F("connected"));
+        wm.setConfigPortalTimeout(0);
         WiFi.mode(WIFI_STA);
         wm.startWebPortal();
         wm.setShowInfoUpdate(true);
@@ -276,7 +281,7 @@ void SetCustomMenu(String StatusText)
 void loop()
 {
     DeviceButton.process();
-    wm.process();    
+    wm.process();
 
     if (registrationDelay > 0)
     {
@@ -285,7 +290,13 @@ void loop()
     }
     else
     {
-        if (!freeAtHomeESPapi.process())
+        if (!WiFi.isConnected())
+        {
+            DEBUG_PL(F("Re-connecting??"));
+            WiFi.reconnect();
+            registrationDelay = 30000;
+        }
+        else if (!freeAtHomeESPapi.process())
         {
             /*
             Serial.println(String("SysAp: ") + wm_helper.GetSetting(0));
