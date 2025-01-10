@@ -119,9 +119,14 @@ private:
             if (strncmp(reinterpret_cast<const char*>(EEPROM.getConstDataPtr() + current_size), param.getValue(), param.getValueLength()) != 0)
             {
                 strncpy(reinterpret_cast<char*>(EEPROM.getDataPtr() + current_size), param.getValue(), param.getValueLength());
+                if (param.getValueLength() < param.getMaxValueLength())
+                {
+                    //Serial.println("Add 0");
+                    reinterpret_cast<char*>(EEPROM.getDataPtr() + current_size + param.getValueLength() + 1)[0] = 0;
+                }
                 //Serial.println(String("Updating: ") + param.getID());
             }
-            current_size += param.getValueLength();
+            current_size += param.getMaxValueLength();
         }
         EEPROM.end();
     }

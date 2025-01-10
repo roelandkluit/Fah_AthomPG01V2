@@ -53,12 +53,17 @@ FahESPSwitchDevice* espDev = NULL;
 ButtonManager DeviceButton(BUTTON_GPIO05, true);
 String deviceID;
 String menuHtml;
+bool hasLoad = false;
+unsigned long previousIntervalMillis = 0;
 
 WiFiManager wm;
 WifiManagerParamHelper wm_helper(wm);
 uint16_t registrationDelay = 2000;
 uint16_t regCount = 0;
 uint16_t regCountFail = 0;
+uint16 milliAmps = 0;
+uint8_t NoLoadTurnOffCounter = 0;
+#define TIME_OFF_COUNTER 6
 
 CSE7766 oCSE7766(&CSE7766_RX_SERIAL);
 
@@ -73,7 +78,7 @@ CSE7766 oCSE7766(&CSE7766_RX_SERIAL);
 #endif
 
 constexpr size_t CUSTOM_FIELD_LEN = 40;
-constexpr std::array<ParamEntry, 4> PARAMS = { {
+constexpr std::array<ParamEntry, 5> PARAMS = { {
     {
       "Ap",
       "SysAp",
@@ -95,6 +100,12 @@ constexpr std::array<ParamEntry, 4> PARAMS = { {
     {
       "dn",
       "Name",
+      CUSTOM_FIELD_LEN,
+      ""
+    },
+    {
+      "mc",
+      "Minimal Current mA",
       CUSTOM_FIELD_LEN,
       ""
     }
@@ -123,7 +134,7 @@ void FahCallBack(FAHESPAPI_EVENT Event, uint64_t FAHID, const char* ptrChannel, 
             digitalWrite(RELAY_CONTACT_GPIO12, LOW);
         }
 
-        SetCustomMenu(String(F("Device: ")) + FahID + String(F(", Event: ")) + ptrChannel + "." + ptrDataPoint + " = " + val);
+        SetCustomMenu("Device: " + FahID + ", Event: " + ptrChannel + "." + ptrDataPoint + " = " + val);
     }
 }
 
@@ -135,8 +146,8 @@ void handleDeviceState(bool state)
         espDev->SetState(state);
     }
     #endif
-    wm.server->sendHeader(String(F("Location")), "/", true);
-    wm.server->send(302, String(F("text/plain")), "");
+    wm.server->sendHeader("Location", "/", true);
+    wm.server->send(302, "text/plain", "");
 }
 
 void handleDeviceOn()
@@ -151,30 +162,31 @@ void handleDeviceOff()
 
 void handleDbgSys()
 {
-    String Text = String(F("Heap: ")) + String(ESP.getFreeHeap()) + String(F("\r\nMaxHeap: ")) + String(ESP.getMaxFreeBlockSize()) + String(F("\r\nFragemented: ")) + String(ESP.getHeapFragmentation()) + String(F("\r\nFAHESP: ")) + freeAtHomeESPapi.Version() + String(F("\r\nConnectCount: ")) + String(regCount) + String(F("\r\nConnectFail: ")) + String(regCountFail);
+    String Text = "Heap: " + String(ESP.getFreeHeap()) + "\r\nMaxHeap: " + String(ESP.getMaxFreeBlockSize()) + "\r\nFragemented: " + String(ESP.getHeapFragmentation()) + "\r\nFAHESP: " + freeAtHomeESPapi.Version() + "\r\nConnectCount: " + String(regCount) + "\r\nConnectFail: " + String(regCountFail);
 
     if (espDev != NULL)
     {
         bool isOn = espDev->GetState();
         if (isOn)
         {
-            Text += String(F("\r\nIsON: True"));
+            Text += "\r\nIsON: True";
         }
         else
         {
-            Text += String(F("\r\nIsON: False"));
+            Text += "\r\nIsON: False";
         }
     }
 
-    Text += String(F("\r\nVoltage: ")) + String(oCSE7766.getVoltage());
-    Text += String(F("\r\nCurrent: ")) + String(oCSE7766.getCurrent());
-    Text += String(F("\r\nPower: ")) + String(oCSE7766.getActivePower());
-    Text += String(F("\r\nApperentPower: ")) + String(oCSE7766.getApparentPower());
-    Text += String(F("\r\nReactivePower: ")) + String(oCSE7766.getReactivePower());
-    Text += String(F("\r\nPowerFactor: ")) + String(oCSE7766.getPowerFactor());
-    Text += String(F("\r\nEnergy: ")) + String(oCSE7766.getEnergy());
+    Text += "\r\nVoltage: " + String(oCSE7766.getVoltage());
+    Text += "\r\nCurrent: " + String(oCSE7766.getCurrent());
+    Text += "\r\nPower: " + String(oCSE7766.getActivePower());
+    Text += "\r\nApperentPower: " + String(oCSE7766.getApparentPower());
+    Text += "\r\nReactivePower: " + String(oCSE7766.getReactivePower());
+    Text += "\r\nPowerFactor: " + String(oCSE7766.getPowerFactor());
+    Text += "\r\nEnergy: " + String(oCSE7766.getEnergy());
+    Text += "\r\nLoad: " + String(hasLoad);
 
-    wm.server->send(200, String(F("text/plain")), Text.c_str());
+    wm.server->send(200, "text/plain", Text.c_str());
 }
 
 void OnButtonPress(bool LongPress)
@@ -190,7 +202,7 @@ void OnButtonPress(bool LongPress)
         if (espDev != NULL)
         {
             espDev->SetState(!espDev->GetState());
-            SetCustomMenu(String(F("ButtonPress: ")) + String(espDev->GetState()));
+            SetCustomMenu("ButtonPress: " + espDev->GetState());
         }
     }
 }
@@ -205,10 +217,14 @@ void setup()
 
     pinMode(RELAY_CONTACT_GPIO12, OUTPUT);
 
-    deviceID = String(F("AthomPG01V2_")) + String(WIFI_getChipId(), HEX);
+    deviceID ="AthomPG01V2_" + String(WIFI_getChipId(), HEX);
     WiFi.mode(WIFI_AP_STA); // explicitly set mode, esp defaults to STA+AP
-    wm.setDebugOutput(false);
-    wm_helper.Init(0xABBF, PARAMS.data(), PARAMS.size());
+    #ifdef DEBUG
+        wm.setDebugOutput(true);
+    #else
+        wm.setDebugOutput(false);
+    #endif
+    wm_helper.Init(0xABB0, PARAMS.data(), PARAMS.size());
     wm.setHostname(deviceID);
     
     //On or OFF state is now requested from SysAP
@@ -237,7 +253,7 @@ void setup()
         wm.server->on("/dbgs", handleDbgSys);
         wm.server->on("/on", handleDeviceOn);
         wm.server->on("/off", handleDeviceOff);
-        SetCustomMenu(String(F("Initializing")));
+        SetCustomMenu("Initializing");
         std::vector<const char*> _menuIdsUpdate = {"custom", "sep", "wifi","param","info","update" };
         wm.setMenu(_menuIdsUpdate);
     }
@@ -249,31 +265,32 @@ void setup()
 void SetCustomMenu(String StatusText)
 {
     DEBUG_PL(StatusText);
-    String State = String(F("Unknown"));
+    String State = "Unknown";
     String Button = "";
     #ifndef MINIMAL_UPLOAD
     if (espDev != NULL)
     {
-        Button = String(F("<form action='/o{1}' method='get'><button>Turn O{1}</button></form><br/>"));
+        Button = "<form action='/o{1}' method='get'><button>Turn O{1}</button></form><br/>";
         if (espDev->GetState())
         {
-            State = String(F("On"));
-            Button.replace(T_1, F("ff"));
+            State = "On";
+            Button.replace(T_1, "ff");
         }
         else
         {
-            State = String(F("Off"));
-            Button.replace(T_1, F("n"));
+            State = "Off";
+            Button.replace(T_1, "n");
         }        
     }
     #endif
 
     //menuHtml = "Relay is: " + State + "<br/>" + StatusText + "<hr/><br/>" + Button + "<form action='/fah' method='get'><button>Debug Status</button></form><br/>\n";
-    menuHtml = String(F("Name: {n}<br/>Relay: {1}<br/>{2}<hr/><br/>{3}<form action='/dbgs' method='get'><button>Debug status</button></form><br/><meta http-equiv='refresh' content='10'>\n"));
+    menuHtml = "Name: {n}<br/>Relay: {1}<br/>HasLoad: {l}</br/>{2}<hr/><br/>{3}<form action='/dbgs' method='get'><button>Debug status</button></form><br/><meta http-equiv='refresh' content='10'>\n";
     menuHtml.replace(T_n, wm_helper.GetSetting(3));
     menuHtml.replace(T_1, State);
     menuHtml.replace(T_2, StatusText);
     menuHtml.replace(T_3, Button);
+    menuHtml.replace(T_l, String(hasLoad));
 
     wm.setCustomMenuHTML(menuHtml.c_str());
 }
@@ -298,29 +315,31 @@ void loop()
         }
         else if (!freeAtHomeESPapi.process())
         {
-            /*
-            Serial.println(String("SysAp: ") + wm_helper.GetSetting(0));
-            Serial.println(String("User: ") + wm_helper.GetSetting(1));
-            Serial.println(String("Pwd: ") + wm_helper.GetSetting(2));*/
+            DEBUG_PL(String("SysAp: ") + wm_helper.GetSetting(0));
+            DEBUG_PL(String("User: ") + wm_helper.GetSetting(1));
+            DEBUG_PL(String("Pwd: ") + wm_helper.GetSetting(2));
+            DEBUG_PL(String("Name: ") + wm_helper.GetSetting(3));
+            milliAmps = atoi(wm_helper.GetSetting(4));
+            DEBUG_PL(String("Ma: ") + String(milliAmps));
             if ((strlen(wm_helper.GetSetting(0)) > 0) && (strlen(wm_helper.GetSetting(1)) > 0) && (strlen(wm_helper.GetSetting(2)) > 0))
             {
-                //Serial.println(F("Connecting WebSocket"));
+                //DEBUG_PL("Connecting WebSocket");
                 if (!freeAtHomeESPapi.ConnectToSysAP(wm_helper.GetSetting(0), wm_helper.GetSetting(1), wm_helper.GetSetting(2), false))
                 {
-                    SetCustomMenu(String(F("SysAp connect error")));
+                    SetCustomMenu("SysAp connect error");
                     //Prevent to many retries
                     registrationDelay = 10000;
                     regCountFail++;
                 }
                 else
                 {
-                    SetCustomMenu(String(F("SysAp connected")));
+                    SetCustomMenu("SysAp connected");
                     regCount++;
                 }
             }
             else
             {
-                SetCustomMenu(String(F("No SysAp configuration")));
+                SetCustomMenu("No SysAp configuration");
                 registrationDelay = 1000;
             }
         }
@@ -332,14 +351,14 @@ void loop()
                 wm.setCustomMenuHTML(NULL);
                 menuHtml = "";
 
-                DEBUG_PL(F("Create Switch Device"));
-                String deviceName = String(F("Athom PG01 ")) + String(WIFI_getChipId(), HEX);
+                DEBUG_PL("Create Switch Device");
+                String deviceName = "Athom PG01 " + String(WIFI_getChipId(), HEX);
                 const char* val = wm_helper.GetSetting(3);
                 if (strlen(val) > 0)
                 {
                     deviceName = String(val);
                 }
-                DEBUG_P(F("Using: "));
+                DEBUG_P("Using: ");
                 DEBUG_PL(deviceName);
                 espDev = freeAtHomeESPapi.CreateSwitchDevice(deviceID.c_str(), deviceName.c_str(), 300);
                 
@@ -347,20 +366,62 @@ void loop()
                 {
                     espDev->AddCallback(FahCallBack);
                     String FahID = freeAtHomeESPapi.U64toString(espDev->GetFahDeviceID());
-                    //Serial.print(t);
-                    //Serial.println(F(": Succes!"));
-                    SetCustomMenu(String(F("Device Registered: ")) + FahID);
+                    //DEBUG_PL(t);
+                    //DEBUG_PL(": Succes!");
+                    SetCustomMenu("Device Registered: " + FahID);
                 }
                 else
                 {
-                    SetCustomMenu(String(F("Device Registration Error")));
-                    //Serial.println(F("Failed to create Virtual device, check user authorizations"));
+                    SetCustomMenu("Device Registration Error");
+                    //DEBUG_PL("Failed to create Virtual device, check user authorizations");
                     registrationDelay = 30000;
                 }
             }
             else
             {
-                oCSE7766.handle();
+                if (millis() - previousIntervalMillis >= (10000))
+                {
+                    previousIntervalMillis = millis();
+                    DEBUG_PL("upu");
+                    oCSE7766.handle();
+                    double current = oCSE7766.getCurrent();
+                    if (milliAmps > 0)
+                    {
+                        if ((current * 1000) >= milliAmps)
+                        {
+                            NoLoadTurnOffCounter = 0;
+                            if (hasLoad != true)
+                            {
+                                DEBUG_PL("Load");
+                                hasLoad = true;
+                                SetCustomMenu("Load current over tresshold");
+                            }
+
+                        }
+                        else
+                        {
+                            if (espDev->GetState())
+                            {
+                                NoLoadTurnOffCounter++;
+                                if (hasLoad != false)
+                                {
+                                    DEBUG_PL("NoLoad");
+                                    hasLoad = false;
+                                    SetCustomMenu("Load current below tresshold");
+                                }
+                                if (NoLoadTurnOffCounter > TIME_OFF_COUNTER)
+                                {
+                                    handleDeviceState(false);
+                                    SetCustomMenu("Load current triggered off");
+                                }
+                            }
+                            else
+                            {
+                                NoLoadTurnOffCounter = 0;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

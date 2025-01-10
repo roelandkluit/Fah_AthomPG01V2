@@ -37,21 +37,22 @@ WiFiManagerParameter::WiFiManagerParameter(const char *custom) {
   _customHTML     = custom;
 }
 
-WiFiManagerParameter::WiFiManagerParameter(const char *id, const char *label) {
+/*WiFiManagerParameter::WiFiManagerParameter(const char* id, const char* label) {
   init(id, label, "", 0, "", WFM_LABEL_DEFAULT);
-}
+}*/
 
-WiFiManagerParameter::WiFiManagerParameter(const char *id, const char *label, const char *defaultValue, int length) {
+/*WiFiManagerParameter::WiFiManagerParameter(const char* id, const char* label, const char* defaultValue, int length) {
   init(id, label, defaultValue, length, "", WFM_LABEL_DEFAULT);
-}
+}*/
 
 WiFiManagerParameter::WiFiManagerParameter(const char *id, const char *label, const char *defaultValue, int length, const char *custom) {
   init(id, label, defaultValue, length, custom, WFM_LABEL_DEFAULT);
 }
 
+/*
 WiFiManagerParameter::WiFiManagerParameter(const char *id, const char *label, const char *defaultValue, int length, const char *custom, int labelPlacement) {
   init(id, label, defaultValue, length, custom, labelPlacement);
-}
+}*/
 
 void WiFiManagerParameter::init(const char *id, const char *label, const char *defaultValue, int length, const char *custom, int labelPlacement) {
   _id             = id;
@@ -59,6 +60,7 @@ void WiFiManagerParameter::init(const char *id, const char *label, const char *d
   _labelPlacement = labelPlacement;
   _customHTML     = custom;
   _length         = 0;
+  _MaxLen         = length;
   _value          = nullptr;
   setValue(defaultValue,length);
 }
@@ -119,6 +121,10 @@ const char* WiFiManagerParameter::getLabel() const {
 int WiFiManagerParameter::getValueLength() const {
   return _length;
 }
+int WiFiManagerParameter::getMaxValueLength() const {
+    return _MaxLen;
+}
+
 int WiFiManagerParameter::getLabelPlacement() const {
   return _labelPlacement;
 }
@@ -1772,7 +1778,7 @@ String WiFiManager::getParamOut(){
         if(tok_n)pitem.replace(FPSTR(T_n), _params[i]->getID()); // T_n id name alias
         if(tok_p)pitem.replace(FPSTR(T_p), FPSTR(T_t)); // T_p replace legacy placeholder token
         if(tok_t)pitem.replace(FPSTR(T_t), _params[i]->getLabel()); // T_t title/label
-        snprintf(valLength, 5, "%d", _params[i]->getValueLength());
+        snprintf(valLength, 5, "%d", _params[i]->getMaxValueLength());
         if(tok_l)pitem.replace(FPSTR(T_l), valLength); // T_l value length
         if ((strlen(_params[i]->getCustomHTML()) > 0) && (strlen(_params[i]->getValue()) > 0) && (strstr(_params[i]->getCustomHTML(), "password") != NULL))
         {
